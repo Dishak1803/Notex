@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NoteX - Register</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .step {
+      display: none;
+    }
+
+    .step.active {
+      display: block;
+    }
+
+    .field-group {
+      margin-bottom: 15px;
+    }
+
+    .field-group input {
+      width: 100%;
+      padding: 10px;
+    }
+
+    .otp-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .otp-row input {
+      flex: 1;
+    }
+
+    .small-btn {
+      padding: 8px 14px;
+      font-size: 13px;
+      white-space: nowrap;
+      width: auto;
+      cursor: pointer;
+    }
+
+    .next-btn {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1 class="logo">Note<span class="logo-x">X</span></h1>
+
+  <div id="error-msg" style="color:#ff6b6b; margin-bottom:10px; display:none;"></div>
+  <div id="success-msg" style="color:#4CAF50; margin-bottom:10px; display:none;"></div>
+
+  <form id="register-form">
+
+    <!-- STEP 1 -->
+    <div id="step-1" class="step active">
+      <div class="field-group">
+        <input type="text" name="name" placeholder="Full Name" required>
+      </div>
+
+      <div class="field-group">
+        <input type="email" id="email" name="email" placeholder="Email" required>
+      </div>
+
+      <button type="button" id="send-otp-btn" class="small-btn">Send OTP</button>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="step-2" class="step">
+      <div class="field-group otp-row">
+        <input type="text" id="otp" name="otp" placeholder="Enter OTP">
+      </div>
+      <button type="button" id="verify-otp-btn" class="next-btn">Verify & Next</button>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="step-3" class="step">
+      <div class="field-group">
+        <input 
+          type="password" 
+          id="password"
+          name="password" 
+          placeholder="Password" 
+          required
+          pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$"
+          title="Minimum 8 characters, at least 1 uppercase, 1 lowercase, 1 number and 1 special character"
+        >
+      </div>
+
+      <div class="field-group">
+        <input 
+          type="password" 
+          id="confirm_password"
+          name="confirm_password" 
+          placeholder="Confirm Password" 
+          required
+        >
+      </div>
+
+      <button type="submit" class="next-btn">Register</button>
+    </div>
+
+  </form>
+
+  <div class="switch">
+    <span>Already have an account?</span>
+    <a href="login.html">Login</a>
+  </div>
+</div>
+
+<script>
+  const sendOtpBtn = document.getElementById("send-otp-btn");
+  const verifyOtpBtn = document.getElementById("verify-otp-btn");
+  const emailInput = document.getElementById("email");
+  const errorMsg = document.getElementById("error-msg");
+  const successMsg = document.getElementById("success-msg");
+
+  const step1 = document.getElementById("step-1");
+  const step2 = document.getElementById("step-2");
+  const step3 = document.getElementById("step-3");
+
+  const form = document.getElementById("register-form");
+
+  function showStep(step) {
+    step1.classList.remove("active");
+    step2.classList.remove("active");
+    step3.classList.remove("active");
+    step.classList.add("active");
+  }
+
+  // SEND OTP
+  sendOtpBtn.addEventListener("click", async () => {
+    const email = emailInput.value.trim();
+
+    if (!email) {
+      errorMsg.textContent = "Please enter email first";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    errorMsg.style.display = "none";
+    successMsg.style.display = "none";
+
+    sendOtpBtn.textContent = "Sending...";
+    sendOtpBtn.disabled = true;
+
+    try {
+      const res = await fetch("/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        successMsg.textContent = "OTP sent to your email";
+        successMsg.style.display = "block";
+        showStep(step2);
+      } else {
+        throw new Error(data.error || "Failed to send OTP");
+      }
+
+    } catch (err) {
+      errorMsg.textContent = err.message;
+      errorMsg.style.display = "block";
+      sendOtpBtn.disabled = false;
+    }
+
+    sendOtpBtn.textContent = "Send OTP";
+  });
+
+  // VERIFY OTP
+  verifyOtpBtn.addEventListener("click", async () => {
+    const email = emailInput.value.trim();
+    const otp = document.getElementById("otp").value.trim();
+
+    if (!otp) {
+      errorMsg.textContent = "Please enter OTP";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    errorMsg.style.display = "none";
+    successMsg.style.display = "none";
+
+    try {
+      const res = await fetch("/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        successMsg.textContent = "Email verified successfully";
+        successMsg.style.display = "block";
+        showStep(step3);
+      } else {
+        throw new Error(data.error || "Invalid OTP");
+      }
+
+    } catch (err) {
+      errorMsg.textContent = err.message;
+      errorMsg.style.display = "block";
+    }
+  });
+
+  // REGISTER
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirm_password").value;
+
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+    errorMsg.style.display = "none";
+    successMsg.style.display = "none";
+
+    if (!strongPasswordRegex.test(password)) {
+      errorMsg.textContent = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      errorMsg.textContent = "Passwords do not match.";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    const formData = new URLSearchParams(new FormData(form));
+
+    try {
+      const res = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData.toString()
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        window.location.href = "/dashboard.html";
+      } else {
+        throw new Error(data.error || "Registration failed");
+      }
+
+    } catch (err) {
+      errorMsg.textContent = err.message;
+      errorMsg.style.display = "block";
+    }
+  });
+</script>
+
+</body>
+</html>

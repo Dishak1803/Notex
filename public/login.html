@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NoteX - Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+  <h1 class="logo">Note<span class="logo-x">X</span></h1>
+
+  <!-- ICONS -->
+  <div class="fields">
+    <span title="Engineering">⚙️</span>
+    <span title="Computer Science">💻</span>
+    <span title="Electronics">📡</span>
+    <span title="Architecture">📐</span>
+    <span title="Medical">🩺</span>
+    <span title="Biology">🧬</span>
+  </div>
+
+  <!-- LOGIN FORM -->
+  <form id="login-form">
+    <input type="email" id="email" name="email" placeholder="Email" required>
+    <input type="password" id="password" name="password" placeholder="Password" required>
+    <button type="submit">Login</button>
+    <div class="error-msg" id="error-msg"></div> <!-- Error message will appear here -->
+  </form>
+
+  <div class="switch">
+    <span>Don’t have an account?</span>
+    <a href="register.html">Register</a>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById("login-form");
+  const errorMsg = document.getElementById("error-msg");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault(); // prevent page reload
+    errorMsg.style.display = "none";
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    try {
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json(); // parse JSON
+
+      if (res.ok && data.success) {
+        // login successful
+        window.location.href = "/dashboard.html";
+      } else {
+        // login failed, show friendly message
+        errorMsg.textContent = data.error || "Something went wrong. Try again.";
+        errorMsg.style.display = "block";
+      }
+
+    } catch (err) {
+      console.error(err);
+      errorMsg.textContent = "Server error. Try again later.";
+      errorMsg.style.display = "block";
+    }
+  });
+</script>
+
+</body>
+</html>

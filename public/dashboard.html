@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoteX</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/dashboard.css">
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-logo">Note<span>X</span></div>
+  <div class="sp-tag">your study companion</div>
+</div>
+
+<!-- FIELD MODAL -->
+<div id="modal">
+  <div class="modal-box">
+    <h2>📚 Set your path</h2>
+    <select id="field-sel">
+      <option value="">Choose Field</option>
+      <option value="Engineering">Engineering</option>
+      <option value="Medical">Medical</option>
+    </select>
+    <select id="branch-sel" style="display:none;margin-top:10px;"></select>
+    <button class="modal-save" onclick="saveField()">Continue →</button>
+  </div>
+</div>
+
+<!-- TOP NAV -->
+<nav id="topnav">
+  <div class="logo">Note<span>X</span></div>
+  <div id="search-wrap">
+    <span class="si">🔍</span>
+    <input type="text" id="search-input" placeholder="Search notes, files…" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+  <div id="streak-nav">🔥 <span id="streak-count">0</span></div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main id="content">
+
+  <!-- SUBJECTS -->
+  <div class="view active" id="view-subjects">
+    <div class="greeting-block">
+      <div class="gr-hello">👋 Hi, <span id="greeting-name">there</span></div>
+      <div class="gr-sub">What are you studying today?</div>
+    </div>
+    <div class="section-label">Your Subjects</div>
+    <div class="subjects-grid" id="subjects-grid"></div>
+  </div>
+
+  <!-- SUBJECT DETAIL -->
+  <div class="view" id="view-subject-detail">
+    <button class="back-btn" onclick="goBack('subjects')">← Back</button>
+    <h2 id="detail-subject-name" style="font-size:1.25rem;font-weight:800;margin-bottom:2px;"></h2>
+    <p style="color:var(--text2);font-size:.78rem;margin-bottom:14px;">Choose a category to browse</p>
+    <div class="category-grid">
+      <div class="cat-card" onclick="openCategory('note')">
+        <div class="cat-emoji">📄</div><div class="cat-name">Notes</div>
+        <div class="cat-count" id="cat-count-note">…</div>
+      </div>
+      <div class="cat-card" onclick="openCategory('ppt')">
+        <div class="cat-emoji">📊</div><div class="cat-name">Slides</div>
+        <div class="cat-count" id="cat-count-ppt">…</div>
+      </div>
+      <div class="cat-card" onclick="openCategory('paper')">
+        <div class="cat-emoji">📝</div><div class="cat-name">Papers</div>
+        <div class="cat-count" id="cat-count-paper">…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY FILE VIEW -->
+  <div class="view" id="view-category">
+    <button class="back-btn" onclick="goBack('subject-detail')">← Back</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div>
+        <h2 id="cat-title" style="font-size:1.1rem;font-weight:800;"></h2>
+        <p id="cat-subtitle" style="color:var(--text2);font-size:.75rem;margin-top:2px;"></p>
+      </div>
+      <button class="upload-btn-inline note" id="cat-upload-btn" onclick="openUpload(currentCatType)">+ Upload</button>
+    </div>
+    <div class="files-grid" id="category-files-grid"></div>
+    <div class="empty-state" id="category-files-empty" style="display:none;">Nothing here yet — be first to upload! 🚀</div>
+  </div>
+
+  <!-- PLANNER -->
+  <div class="view" id="view-planner">
+    <div class="planner-hd">
+      <h2 style="font-size:1.4rem;">📅 Study Planner</h2>
+      <button class="add-task-btn" onclick="openTaskModal()">+ Add Task</button>
+    </div>
+    <div class="task-list" id="task-list"></div>
+    <div class="empty-state" id="task-empty" style="display:none;">No tasks yet. Start planning! 📅</div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="view" id="view-leaderboard">
+    <h2 style="font-size:1.4rem;margin-bottom:4px;">🏆 Leaderboard</h2>
+    <p style="color:var(--text2);font-size:.82rem;margin-bottom:16px;">Top students by streak, activity &amp; uploads</p>
+    <div class="lb-tabs">
+      <button class="lb-tab active" onclick="switchLbTab('streak',this)">🔥 Streak</button>
+      <button class="lb-tab" onclick="switchLbTab('engagement',this)">⚡ Most Active</button>
+      <button class="lb-tab" onclick="switchLbTab('uploads',this)">📤 Uploaders</button>
+    </div>
+    <div class="lb-list" id="lb-list"></div>
+  </div>
+
+  <!-- BOOKMARKS -->
+  <div class="view" id="view-bookmarks">
+    <h2 style="font-size:1.4rem;margin-bottom:4px;">🔖 Saved</h2>
+    <p style="color:var(--text2);font-size:.82rem;margin-bottom:16px;">Your bookmarked study materials</p>
+    <div class="files-grid" id="bookmarks-grid"></div>
+    <div class="bk-empty" id="bk-empty" style="display:none;">
+      <div class="bk-icon">🔖</div>
+      <div>No bookmarks yet.<br>Tap 🔖 on any file to save it here.</div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="view" id="view-profile">
+    <input type="file" id="photo-input" accept="image/*" onchange="uploadPhoto(this)">
+    <div class="profile-hero">
+      <div class="ph-av-wrap" onclick="document.getElementById('photo-input').click()">
+        <div class="ph-av" id="ph-avatar">?</div>
+        <div class="ph-edit-ov">📷<br>Change</div>
+      </div>
+      <div class="ph-info">
+        <div class="ph-name" id="ph-name">—</div>
+        <div class="ph-email" id="ph-email">—</div>
+        <div class="ph-badges">
+          <span class="ph-badge" id="ph-field">—</span>
+          <span class="ph-badge" id="ph-branch">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="profile-stats">
+      <div class="ps-card clickable" id="ps-uploads-card" onclick="toggleMyUploads()">
+        <div class="ps-val" id="ps-uploads">0</div>
+        <div class="ps-label">📤 Uploads</div>
+      </div>
+      <div class="ps-card">
+        <div class="ps-val" id="ps-downloads">0</div>
+        <div class="ps-label">⬇ Downloads</div>
+      </div>
+      <div class="ps-card">
+        <div class="ps-val" id="ps-streak">0</div>
+        <div class="ps-label">🔥 Streak</div>
+      </div>
+    </div>
+    <div id="my-uploads-section" style="display:none;margin-bottom:14px;">
+      <div class="mu-hd">My Uploads</div>
+      <div class="files-grid" id="my-uploads-grid"></div>
+      <div class="empty-state" id="my-uploads-empty" style="display:none;">No uploads yet.</div>
+    </div>
+    <div class="profile-actions">
+      <button class="pa-btn" onclick="openModal()">✏️ Change Field / Branch</button>
+      <button class="pa-btn danger" onclick="logout()">🚪 Logout</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav id="bottomnav">
+  <div class="bn-item active" id="bn-subjects" onclick="switchView('subjects')">
+    <div class="bn-icon">📚</div><div class="bn-label">Subjects</div>
+  </div>
+  <div class="bn-item" id="bn-planner" onclick="switchView('planner')">
+    <div class="bn-icon">📅</div><div class="bn-label">Planner</div>
+  </div>
+  <div class="bn-item" id="bn-game" onclick="openGameIframe()">
+    <div class="bn-icon">🎮</div><div class="bn-label">Game</div>
+  </div>
+  <div class="bn-item" id="bn-leaderboard" onclick="switchView('leaderboard')">
+    <div class="bn-icon">🏆</div><div class="bn-label">Ranks</div>
+  </div>
+  <div class="bn-item" id="bn-bookmarks" onclick="switchView('bookmarks')">
+    <div class="bn-icon">🔖</div><div class="bn-label">Saved</div>
+  </div>
+  <div class="bn-item" id="bn-profile" onclick="switchView('profile')">
+    <div class="bn-icon">
+      <div class="avatar-ring"><img id="nav-avatar-img" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt=""></div>
+    </div>
+    <div class="bn-label">Profile</div>
+  </div>
+</nav>
+
+<!-- PREVIEW MODAL -->
+<div id="preview-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.96);display:none;flex-direction:column;z-index:9990;">
+  <div class="pm-bar">
+    <h3 id="preview-filename">File Preview</h3>
+    <a id="pm-download-btn" href="#" download style="background:var(--accent);border:none;color:#fff;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem;text-decoration:none;">⬇ Download</a>
+    <button class="pm-close" onclick="closePreview()">✕ Close</button>
+  </div>
+  <iframe id="preview-frame" src="about:blank" style="flex:1;border:none;background:#1a1a2e;width:100%;display:block;"></iframe>
+  <div id="preview-fallback" style="flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center;">
+    <div style="font-size:3rem;">📄</div>
+    <p style="color:var(--text2);font-size:.9rem;line-height:1.6;">This file can't be previewed in the browser.<br>Use the ⬇ Download button above to open it.</p>
+  </div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div id="upload-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;z-index:9991;backdrop-filter:blur(8px);">
+  <div class="um-box">
+    <h3 id="um-title">Upload Note</h3>
+    <p class="um-hint" id="um-hint">Any document, PDF or image</p>
+    <div class="um-drop" id="um-drop" onclick="document.getElementById('um-file').click()">
+      <input type="file" id="um-file">
+      <div class="um-icon" id="um-icon">📄</div>
+      <p id="um-drop-text">Click to select file</p>
+    </div>
+    <input type="hidden" id="um-type">
+    <input type="hidden" id="um-subject">
+    <div id="um-progress"><div class="um-prog-track"><div id="um-progress-bar" style="width:0%"></div></div></div>
+    <div class="um-btns">
+      <button class="um-go" id="um-go-btn" onclick="submitUpload()">Upload</button>
+      <button class="um-cancel" onclick="closeUpload()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div id="delete-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;z-index:9992;backdrop-filter:blur(8px);">
+  <div class="dm-box">
+    <h3>🗑️ Delete File?</h3>
+    <p>This action cannot be undone.</p>
+    <input type="hidden" id="dm-id">
+    <input type="hidden" id="dm-type">
+    <div class="dm-btns">
+      <button class="dm-confirm" onclick="confirmDelete()">Delete</button>
+      <button class="dm-cancel" onclick="closeDel()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMMENT DRAWER -->
+<div id="comment-drawer">
+  <div class="cd-header">
+    <h3>💬 Comments</h3>
+    <button class="cd-close" onclick="closeComments()">✕</button>
+  </div>
+  <div id="comment-list"></div>
+  <div class="cd-input">
+    <div class="cd-reply-tag" id="cd-reply-tag">
+      <span>↩ <span id="cd-reply-name">Replying</span></span>
+      <button onclick="clearReply()">✕ Cancel</button>
+    </div>
+    <div class="cd-row">
+      <input type="text" id="comment-input" placeholder="Add a comment…" onkeydown="if(event.key==='Enter')postComment()">
+      <input type="hidden" id="cd-file-id">
+      <input type="hidden" id="cd-file-type">
+      <input type="hidden" id="cd-reply-to-id">
+      <button class="cd-send" onclick="postComment()">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASK MODAL -->
+<div id="task-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;z-index:9993;backdrop-filter:blur(8px);">
+  <div class="tm-box">
+    <h3>📅 Add Study Task</h3>
+    <div class="tm-field"><label>Task Name</label><input type="text" id="tm-task" placeholder="e.g. Revise DBMS Unit 2"></div>
+    <div class="tm-field"><label>Subject</label><input type="text" id="tm-subject" placeholder="e.g. DBMS"></div>
+    <div class="tm-field"><label>Due Date</label><input type="date" id="tm-date"></div>
+    <div class="tm-btns">
+      <button class="tm-save" onclick="saveTask()">Save Task</button>
+      <button class="tm-cancel" onclick="closeTaskModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- GAME IFRAME OVERLAY -->
+<div id="game-iframe-wrap" style="display:none;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;">
+  <button onclick="closeGameIframe()" style="position:absolute;top:14px;right:16px;z-index:10001;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);border-radius:10px;padding:8px 16px;cursor:pointer;font-size:.85rem;font-family:sans-serif;backdrop-filter:blur(4px);">✕ Dashboard</button>
+  <iframe src="/game.html" style="width:100%;height:100%;border:none;display:block;" allowfullscreen></iframe>
+</div>
+
+<script>
+/* ═══ DATA ═══════════════════════════════════════════════════════════════════ */
+const BRANCHES = {
+  Engineering: ["Computer Engineering","Information Technology","Electronics & Telecommunication","Electrical Engineering","Mechanical Engineering","Civil Engineering","AI & Data Science","Robotics & Automation"],
+  Medical: ["General Medicine","General Surgery","Dentistry","Gynecology & Obstetrics","Pediatrics","Orthopedics","Cardiology","Neurology","Dermatology","Radiology"]
+};
+const SUBJECTS = {
+  "Computer Engineering":[{n:"Data Structures",e:"🗂️"},{n:"Algorithms",e:"⚡"},{n:"Operating Systems",e:"💻"},{n:"DBMS",e:"🗄️"},{n:"Computer Networks",e:"🌐"},{n:"Software Engineering",e:"🛠️"}],
+  "Information Technology":[{n:"Networking",e:"🌐"},{n:"Web Development",e:"🕸️"},{n:"Cybersecurity",e:"🔒"},{n:"OOP in Java",e:"☕"},{n:"Cloud Computing",e:"☁️"}],
+  "Electronics & Telecommunication":[{n:"Signals & Systems",e:"📡"},{n:"Communication Systems",e:"📞"},{n:"Microprocessors",e:"🔧"},{n:"VLSI Design",e:"🔬"}],
+  "Electrical Engineering":[{n:"Circuit Analysis",e:"🔌"},{n:"Power Systems",e:"⚡"},{n:"Electromagnetics",e:"🧲"},{n:"Control Systems",e:"🎛️"}],
+  "Mechanical Engineering":[{n:"Thermodynamics",e:"🔥"},{n:"Fluid Mechanics",e:"💧"},{n:"Machine Design",e:"⚙️"},{n:"Manufacturing",e:"🏭"}],
+  "Civil Engineering":[{n:"Structural Analysis",e:"🏗️"},{n:"Surveying",e:"📏"},{n:"Concrete Technology",e:"🧱"},{n:"Geotechnics",e:"🌍"}],
+  "AI & Data Science":[{n:"Machine Learning",e:"🤖"},{n:"Deep Learning",e:"🧠"},{n:"Statistics",e:"📊"},{n:"NLP",e:"💬"},{n:"Computer Vision",e:"👁️"}],
+  "Robotics & Automation":[{n:"Control Systems",e:"🎛️"},{n:"Sensors & Actuators",e:"📡"},{n:"Industrial Automation",e:"🏭"},{n:"ROS",e:"🤖"}],
+  "General Medicine":[{n:"Anatomy",e:"🫀"},{n:"Physiology",e:"🫁"},{n:"Pathology",e:"🧪"},{n:"Pharmacology",e:"💊"}],
+  "General Surgery":[{n:"Surgical Techniques",e:"🔪"},{n:"Anatomy",e:"🫀"},{n:"Patient Care",e:"🩺"}],
+  "Dentistry":[{n:"Oral Anatomy",e:"🦷"},{n:"Dental Materials",e:"🪥"},{n:"Orthodontics",e:"😁"}],
+  "Gynecology & Obstetrics":[{n:"Obstetrics",e:"🤰"},{n:"Gynecology",e:"👩‍⚕️"},{n:"Reproductive Health",e:"🧬"}],
+  "Pediatrics":[{n:"Child Development",e:"🧒"},{n:"Pediatric Diseases",e:"🧸"},{n:"Nutrition",e:"🥛"}],
+  "Orthopedics":[{n:"Bone Diseases",e:"🦴"},{n:"Fracture Management",e:"🩹"},{n:"Rehabilitation",e:"🏃‍♂️"}],
+  "Cardiology":[{n:"Cardiac Physiology",e:"❤️"},{n:"ECG",e:"📈"},{n:"Heart Diseases",e:"💔"}],
+  "Neurology":[{n:"Neuroanatomy",e:"🧠"},{n:"Neurophysiology",e:"🧩"},{n:"Neurological Disorders",e:"⚡"}],
+  "Dermatology":[{n:"Skin Diseases",e:"🧴"},{n:"Dermatopathology",e:"🔬"},{n:"Cosmetic Dermatology",e:"💅"}],
+  "Radiology":[{n:"Imaging Techniques",e:"🖼️"},{n:"X-ray",e:"🩻"},{n:"MRI/CT Scan",e:"🧪"}]
+};
+
+let USER = {}, SUBJECT = "", BRANCH = "";
+
+/* ═══ SESSION-AWARE FETCH — auto-redirects to login on 401 ════════════════ */
+async function apiFetch(url, opts = {}) {
+  const r = await fetch(url, opts);
+  if (r.status === 401) { window.location.href = "/login.html"; throw new Error("Session expired"); }
+  return r;
+}
+
+/* ═══ SPLASH ════════════════════════════════════════════════════════════════ */
+function hideSplash() {
+  const s = document.getElementById("splash");
+  s.style.opacity = "0";
+  setTimeout(() => s.style.display = "none", 500);
+}
+
+/* ═══ INIT ══════════════════════════════════════════════════════════════════ */
+window.addEventListener("DOMContentLoaded", async () => {
+  const splashTimeout = setTimeout(hideSplash, 3000);
+  try {
+    const r = await fetch("/user-info");
+    if (r.status === 401) { window.location.href = "/login.html"; return; }
+    USER = await r.json();
+    if (!USER.field || !USER.branch) {
+      showModal();
+    } else {
+      BRANCH = USER.branch;
+      renderSubjects();
+      loadStreak();
+      loadProfileNav();
+      const fn = (USER.name || "").split(" ")[0];
+      const el = document.getElementById("greeting-name");
+      if (el && fn) el.textContent = fn;
+    }
+  } catch(e) { console.error("Init error:", e); }
+  clearTimeout(splashTimeout);
+  setTimeout(hideSplash, 1400);
+});
+
+async function loadStreak() {
+  try {
+    const r = await apiFetch("/streak");
+    const d = await r.json();
+    const n = d.streak || 0;
+    document.getElementById("streak-count").textContent = n;
+    document.getElementById("ps-streak").textContent    = n;
+  } catch(e) {}
+}
+
+async function loadProfileNav() {
+  document.getElementById("ph-name").textContent   = USER.name   || "—";
+  document.getElementById("ph-email").textContent  = USER.email  || "—";
+  document.getElementById("ph-field").textContent  = USER.field  || "—";
+  document.getElementById("ph-branch").textContent = USER.branch || "—";
+  if (USER.photo) {
+    document.getElementById("ph-avatar").innerHTML = `<img src="${USER.photo}" alt="">`;
+    document.getElementById("nav-avatar-img").src  = USER.photo;
+  } else {
+    document.getElementById("ph-avatar").textContent = (USER.name || "?")[0].toUpperCase();
+  }
+  try {
+    const r = await apiFetch("/profile-stats");
+    const d = await r.json();
+    document.getElementById("ps-uploads").textContent   = d.uploads   || 0;
+    document.getElementById("ps-downloads").textContent = d.downloads || 0;
+  } catch(e) {}
+}
+
+/* ═══ MY UPLOADS ════════════════════════════════════════════════════════════ */
+let myUploadsOpen = false;
+async function toggleMyUploads() {
+  const section = document.getElementById("my-uploads-section");
+  const card    = document.getElementById("ps-uploads-card");
+  myUploadsOpen = !myUploadsOpen;
+  card.classList.toggle("open", myUploadsOpen);
+  section.style.display = myUploadsOpen ? "block" : "none";
+  if (myUploadsOpen) await loadMyUploads();
+}
+async function loadMyUploads() {
+  const grid  = document.getElementById("my-uploads-grid");
+  const empty = document.getElementById("my-uploads-empty");
+  grid.innerHTML = ""; empty.style.display = "none";
+  try {
+    const r = await apiFetch("/my-uploads");
+    const files = await r.json();
+    if (!files.length) { empty.style.display = "block"; return; }
+    files.forEach(f => grid.appendChild(makeFileCard(f, f.file_type)));
+  } catch(e) { empty.style.display = "block"; }
+}
+
+async function uploadPhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const fd = new FormData(); fd.append("photo", file);
+  const r = await apiFetch("/upload-photo", { method:"POST", body:fd });
+  const d = await r.json();
+  if (d.success) {
+    USER.photo = d.url;
+    document.getElementById("ph-avatar").innerHTML = `<img src="${d.url}" alt="">`;
+    document.getElementById("nav-avatar-img").src  = d.url;
+    toast("Photo updated! 📷", "success");
+  }
+}
+
+/* ═══ NAVIGATION ════════════════════════════════════════════════════════════ */
+function switchView(name) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.querySelectorAll(".bn-item").forEach(b => b.classList.remove("active"));
+  const vEl = document.getElementById("view-" + name);
+  const bEl = document.getElementById("bn-" + name);
+  if (vEl) vEl.classList.add("active");
+  if (bEl) bEl.classList.add("active");
+  if (name === "leaderboard") loadLeaderboard("streak");
+  if (name === "planner")     loadTasks();
+  if (name === "bookmarks")   loadBookmarks();
+  if (name === "profile")     loadProfileNav();
+  closeComments();
+}
+function showView(name) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  const el = document.getElementById("view-" + name);
+  if (el) el.classList.add("active");
+}
+function goBack(to) {
+  if (to === "subjects") {
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.querySelectorAll(".bn-item").forEach(b => b.classList.remove("active"));
+    document.getElementById("view-subjects").classList.add("active");
+    document.getElementById("bn-subjects").classList.add("active");
+  } else if (to === "subject-detail") {
+    showView("subject-detail");
+  }
+  closeComments();
+}
+
+/* ═══ SUBJECTS ══════════════════════════════════════════════════════════════ */
+function renderSubjects() {
+  const grid = document.getElementById("subjects-grid");
+  grid.innerHTML = "";
+  (SUBJECTS[BRANCH] || []).forEach(s => {
+    const c = document.createElement("div");
+    c.className = "subj-card";
+    c.innerHTML = `<div class="sc-emoji">${s.e}</div><div class="sc-text"><div class="sc-name">${s.n}</div></div><div class="sc-arrow">›</div>`;
+    c.onclick = () => openSubject(s.n);
+    grid.appendChild(c);
+  });
+}
+
+/* ═══ FILES ═════════════════════════════════════════════════════════════════ */
+const TYPE_META = {
+  note:  { icon:"📄", endpoint:"/notes",  label:"Note"  },
+  ppt:   { icon:"📊", endpoint:"/ppts",   label:"Slide" },
+  paper: { icon:"📝", endpoint:"/papers", label:"Paper" }
+};
+
+async function openSubject(subj) {
+  SUBJECT = subj;
+  document.getElementById("detail-subject-name").textContent = subj;
+  showView("subject-detail");
+  ["note","ppt","paper"].forEach(t => loadCatCount(t));
+}
+async function loadCatCount(type) {
+  const m = TYPE_META[type];
+  const cnt = document.getElementById(`cat-count-${type}`);
+  try {
+    const r = await apiFetch(`${m.endpoint}/${encodeURIComponent(SUBJECT)}`);
+    const d = await r.json();
+    if (cnt) cnt.textContent = d.length + " file" + (d.length !== 1 ? "s" : "");
+  } catch(e) { if (cnt) cnt.textContent = "0 files"; }
+}
+
+let currentCatType = "note";
+async function openCategory(type) {
+  currentCatType = type;
+  const labels = { note:"Notes", ppt:"Presentations", paper:"Previous Papers" };
+  const icons  = { note:"📄", ppt:"📊", paper:"📝" };
+  document.getElementById("cat-title").textContent    = icons[type] + " " + labels[type];
+  document.getElementById("cat-subtitle").textContent = SUBJECT;
+  const ubtn = document.getElementById("cat-upload-btn");
+  ubtn.className = "upload-btn-inline " + (type==="paper"?"paper":type==="ppt"?"ppt":"note");
+  showView("category");
+  await loadCategoryFiles(type);
+}
+async function loadCategoryFiles(type) {
+  const m     = TYPE_META[type];
+  const grid  = document.getElementById("category-files-grid");
+  const empty = document.getElementById("category-files-empty");
+  if (!SUBJECT) { empty.style.display = "block"; return; }
+  grid.innerHTML = `<div style="color:var(--muted);font-size:.82rem;padding:20px 0;grid-column:1/-1;">Loading…</div>`;
+  empty.style.display = "none";
+  try {
+    const r = await apiFetch(`${m.endpoint}/${encodeURIComponent(SUBJECT)}`);
+    if (!r.ok) throw new Error("Server error " + r.status);
+    const files = await r.json();
+    grid.innerHTML = "";
+    if (!files.length) { empty.style.display = "block"; return; }
+    files.forEach(f => grid.appendChild(makeFileCard(f, type)));
+    const cnt = document.getElementById(`cat-count-${type}`);
+    if (cnt) cnt.textContent = files.length + " file" + (files.length!==1?"s":"");
+  } catch(e) {
+    grid.innerHTML = "";
+    empty.style.display = "block";
+    empty.textContent = "Error loading files: " + e.message;
+  }
+}
+async function loadFiles(type) { await loadCategoryFiles(type); }
+
+/* ─── File Card ─── */
+function makeFileCard(f, type) {
+  const m    = TYPE_META[type] || { icon:"📄" };
+  const card = document.createElement("div");
+  card.className = "file-card";
+  const date   = new Date(f.uploaded_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+  const myVote = f.my_vote || null;
+  const bkOn   = f.bookmarked ? "bk-on" : "";
+  card.innerHTML = `
+    <div class="fc-top">
+      <div class="fc-icon">${m.icon}</div>
+      <div class="fc-info">
+        <div class="fc-name" title="${escHtml(f.filename)}">${escHtml(f.filename)}</div>
+        <div class="fc-meta">
+          ${f.subject?`<span class="fc-subj">${escHtml(f.subject)}</span>`:""}
+          <span class="fc-date">${date}</span>
+        </div>
+      </div>
+      <button class="fc-del del-btn" data-fid="${f.id}" data-ftype="${type}">✕</button>
+    </div>
+    <div class="fc-bar">
+      <div class="vote-pill">
+        <button class="vote-btn up ${myVote==='up'?'voted-up':''}" id="up-${type}-${f.id}" data-fid="${f.id}" data-ftype="${type}" data-vote="up">▲ <span id="upc-up-${type}-${f.id}">${f.upvotes||0}</span></button>
+        <div class="vote-sep"></div>
+        <button class="vote-btn dn ${myVote==='down'?'voted-down':''}" id="dn-${type}-${f.id}" data-fid="${f.id}" data-ftype="${type}" data-vote="down">▼ <span id="upc-dn-${type}-${f.id}">${f.downvotes||0}</span></button>
+      </div>
+      <div class="fc-actions">
+        <button class="fc-btn dl-btn" data-id="${f.id}" data-type="${type}" data-path="${escAttr(f.filepath)}" data-name="${escAttr(f.filename)}" title="Download">⬇</button>
+        <button class="fc-btn cmt-btn" data-fid="${f.id}" data-ftype="${type}" title="Comments">💬</button>
+        <button class="fc-btn bk-btn ${bkOn}" id="bk-${type}-${f.id}" data-fid="${f.id}" data-ftype="${type}" title="Bookmark">🔖</button>
+      </div>
+    </div>`;
+  card.onclick = (e) => {
+    const voteBtn = e.target.closest(".vote-btn");
+    const dlBtn   = e.target.closest(".dl-btn");
+    const cmtBtn  = e.target.closest(".cmt-btn");
+    const bkBtn   = e.target.closest(".bk-btn");
+    const delBtn  = e.target.closest(".del-btn");
+    e.stopPropagation();
+    if (voteBtn)     castVote(voteBtn.dataset.fid, voteBtn.dataset.ftype, voteBtn.dataset.vote, voteBtn);
+    else if (dlBtn)  handleDownload(dlBtn);
+    else if (cmtBtn) openComments(cmtBtn.dataset.fid, cmtBtn.dataset.ftype);
+    else if (bkBtn)  toggleBookmark(bkBtn.dataset.fid, bkBtn.dataset.ftype, bkBtn);
+    else if (delBtn) askDelete(delBtn.dataset.fid, delBtn.dataset.ftype);
+    else             openPreview(f.filename, f.filepath, type);
+  };
+  return card;
+}
+
+/* ─── Preview — FIXED ─── */
+function openPreview(filename, filepath, type) {
+  const fullUrl  = window.location.origin + "/" + filepath;
+  const ext      = filename.split(".").pop().toLowerCase();
+  const frame    = document.getElementById("preview-frame");
+  const fallback = document.getElementById("preview-fallback");
+  const modal    = document.getElementById("preview-modal");
+
+  document.getElementById("preview-filename").textContent = filename;
+  document.getElementById("pm-download-btn").href         = "/" + filepath;
+  document.getElementById("pm-download-btn").setAttribute("download", filename);
+
+  // Reset iframe cleanly before showing modal
+  frame.removeAttribute("srcdoc");
+  frame.src = "about:blank";
+  frame.style.display    = "block";
+  fallback.style.display = "none";
+
+  // Show modal first so iframe has layout dimensions
+  modal.style.display = "flex";
+
+  const officeExts = ["ppt","pptx","doc","docx","xls","xlsx","odp","odt"];
+  const imageExts  = ["jpg","jpeg","png","gif","webp","svg","bmp"];
+  const videoExts  = ["mp4","webm","ogg"];
+  const textExts   = ["txt","csv","json","xml","md","js","py","html","css"];
+
+  // Slight delay ensures modal is painted & iframe is ready
+  setTimeout(() => {
+    if (ext === "pdf") {
+      // Direct same-origin PDF — renders natively in all modern browsers
+      frame.src = "/" + filepath;
+
+    } else if (imageExts.includes(ext)) {
+      frame.srcdoc = `<!DOCTYPE html><html><head><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh;}img{max-width:100%;max-height:100vh;object-fit:contain;}</style></head><body><img src="${fullUrl}"></body></html>`;
+
+    } else if (videoExts.includes(ext)) {
+      frame.srcdoc = `<!DOCTYPE html><html><head><style>*{margin:0;padding:0;}body{background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;}video{max-width:100%;max-height:100vh;}</style></head><body><video src="${fullUrl}" controls autoplay></video></body></html>`;
+
+    } else if (textExts.includes(ext)) {
+      // Fetch text content and render it in the iframe
+      fetch("/" + filepath)
+        .then(r => r.text())
+        .then(text => {
+          const escaped = text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+          frame.srcdoc = `<!DOCTYPE html><html><head><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#1a1a2e;color:#e2e8f0;font-family:monospace;font-size:13px;line-height:1.7;padding:24px;white-space:pre-wrap;word-break:break-word;}</style></head><body>${escaped}</body></html>`;
+        })
+        .catch(() => showFallback(frame, fallback, filename));
+
+    } else if (officeExts.includes(ext)) {
+      // Office files: show a friendly download prompt — Google viewer can't reach private servers
+      frame.style.display    = "none";
+      fallback.style.display = "flex";
+      fallback.innerHTML = `
+        <div style="font-size:3.5rem;margin-bottom:8px;">📄</div>
+        <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:8px;">${escHtml(filename)}</div>
+        <p style="color:var(--text2);font-size:.88rem;line-height:1.7;max-width:320px;">
+          Office files (.doc, .ppt, .xls etc.) can't be previewed directly in the browser.<br><br>
+          Click <strong style="color:#fff;">⬇ Download</strong> above to open it on your device.
+        </p>`;
+
+    } else {
+      showFallback(frame, fallback, filename);
+    }
+  }, 60);
+}
+
+function showFallback(frame, fallback, filename) {
+  frame.style.display    = "none";
+  fallback.style.display = "flex";
+  fallback.innerHTML = `
+    <div style="font-size:3rem;">📄</div>
+    <p style="color:var(--text2);font-size:.9rem;line-height:1.6;">
+      <strong style="color:#fff;">${escHtml(filename)}</strong><br><br>
+      This file type can't be previewed in the browser.<br>
+      Use the ⬇ Download button above to open it.
+    </p>`;
+}
+
+function closePreview() {
+  const modal = document.getElementById("preview-modal");
+  const frame = document.getElementById("preview-frame");
+  modal.style.display = "none";
+  // Fully stop any loading content
+  frame.removeAttribute("srcdoc");
+  frame.src = "about:blank";
+}
+
+/* ─── Download ─── */
+async function handleDownload(btn) {
+  const { id, type, path: filepath, name: filename } = btn.dataset;
+  try {
+    await apiFetch("/track-download", { method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ file_id:id, file_type:type }) });
+  } catch(e) {}
+  const a = document.createElement("a");
+  a.href = "/" + filepath; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+async function castVote(id, type, vote, btn) {
+  btn.style.opacity = "0.5";
+  try {
+    const r = await apiFetch("/toggle-like", { method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ file_id:id, file_type:type, vote }) });
+    const d = await r.json();
+    const upS = document.getElementById(`upc-up-${type}-${id}`);
+    const dnS = document.getElementById(`upc-dn-${type}-${id}`);
+    if (upS) upS.textContent = d.upvotes   || 0;
+    if (dnS) dnS.textContent = d.downvotes || 0;
+    const upB = document.getElementById(`up-${type}-${id}`);
+    const dnB = document.getElementById(`dn-${type}-${id}`);
+    if (upB) upB.classList.toggle("voted-up",   d.action==="upvoted");
+    if (dnB) dnB.classList.toggle("voted-down", d.action==="downvoted");
+    if (d.action==="removed") {
+      if (upB) upB.classList.remove("voted-up");
+      if (dnB) dnB.classList.remove("voted-down");
+    }
+  } catch(e) { toast("Error voting","error"); }
+  finally { btn.style.opacity = ""; }
+}
+
+async function toggleBookmark(id, type, btn) {
+  try {
+    const r = await apiFetch("/toggle-bookmark", { method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ file_id:id, file_type:type }) });
+    const d = await r.json();
+    btn.classList.toggle("bk-on", d.action==="saved");
+    toast(d.action==="saved"?"Bookmarked 🔖":"Bookmark removed","success");
+  } catch(e) { toast("Error","error"); }
+}
+
+function askDelete(id, type) {
+  document.getElementById("dm-id").value   = id;
+  document.getElementById("dm-type").value = type;
+  document.getElementById("delete-modal").style.display = "flex";
+}
+async function confirmDelete() {
+  const id   = document.getElementById("dm-id").value;
+  const type = document.getElementById("dm-type").value;
+  const ep   = { note:"/delete-note", ppt:"/delete-ppt", paper:"/delete-paper" }[type];
+  try {
+    const r = await apiFetch(`${ep}/${id}`, { method:"DELETE" });
+    const d = await r.json();
+    if (d.success) { closeDel(); loadFiles(type); toast("Deleted!","success"); }
+    else toast(d.error||"Delete failed","error");
+  } catch(e) { toast("Error","error"); }
+}
+function closeDel() { document.getElementById("delete-modal").style.display = "none"; }
+
+function openUpload(type) {
+  document.getElementById("um-type").value    = type;
+  document.getElementById("um-subject").value = SUBJECT;
+  document.getElementById("um-file").value    = "";
+  document.getElementById("um-drop-text").textContent = "Click to select file";
+  const t = {
+    note:  ["📄 Upload Note","Any document, PDF or image","📄","um-go"],
+    ppt:   ["📊 Upload Presentation","PowerPoint or presentation file","📊","um-go ppt-go"],
+    paper: ["📝 Upload Previous Paper","PDF of previous year question paper","📝","um-go paper-go"]
+  }[type];
+  document.getElementById("um-title").textContent = t[0];
+  document.getElementById("um-hint").textContent  = t[1];
+  document.getElementById("um-icon").textContent  = t[2];
+  document.getElementById("um-go-btn").className  = t[3];
+  document.getElementById("um-progress").style.display = "none";
+  document.getElementById("um-progress-bar").style.width = "0%";
+  document.getElementById("upload-modal").style.display = "flex";
+}
+document.getElementById("um-file").addEventListener("change", function() {
+  if (this.files[0]) document.getElementById("um-drop-text").textContent = this.files[0].name;
+});
+function closeUpload() { document.getElementById("upload-modal").style.display = "none"; }
+async function submitUpload() {
+  const file    = document.getElementById("um-file").files[0];
+  const type    = document.getElementById("um-type").value;
+  const subject = document.getElementById("um-subject").value;
+  if (!file) { toast("Select a file first","error"); return; }
+  const prog = document.getElementById("um-progress");
+  const bar  = document.getElementById("um-progress-bar");
+  prog.style.display = "block"; let w = 0;
+  const iv = setInterval(() => { w = Math.min(w+10,85); bar.style.width = w+"%"; }, 120);
+  const fd = new FormData();
+  fd.append("file",file); fd.append("subject",subject); fd.append("type",type);
+  try {
+    const r = await apiFetch("/upload-file", { method:"POST", body:fd });
+    const d = await r.json();
+    clearInterval(iv); bar.style.width = "100%";
+    if (d.success) {
+      setTimeout(async () => {
+        closeUpload(); await loadFiles(type); toast("Uploaded! 🎉","success");
+        try {
+          const sr = await apiFetch("/profile-stats");
+          const sd = await sr.json();
+          document.getElementById("ps-uploads").textContent = sd.uploads || 0;
+        } catch(e) {}
+        if (myUploadsOpen) loadMyUploads();
+      }, 400);
+    } else { toast(d.error||"Upload failed","error"); }
+  } catch(e) { clearInterval(iv); toast("Upload error","error"); }
+}
+
+/* ═══ COMMENTS ══════════════════════════════════════════════════════════════ */
+const socket = io();
+let currentFileId = null, currentFileType = null, replyToId = null;
+
+socket.on("new-comment", (c) => {
+  if (c._sender_socket && c._sender_socket === socket.id) return;
+  if (String(c.file_id) !== String(currentFileId) || c.file_type !== currentFileType) return;
+  if (c.parent_id) appendReply(c, true); else appendComment(c, true);
+});
+
+function openComments(fileId, fileType) {
+  if (currentFileId) socket.emit("leave-file", { file_id:currentFileId, file_type:currentFileType });
+  currentFileId = fileId; currentFileType = fileType;
+  clearReply();
+  document.getElementById("cd-file-id").value   = fileId;
+  document.getElementById("cd-file-type").value = fileType;
+  document.getElementById("comment-drawer").classList.add("open");
+  socket.emit("join-file", { file_id:fileId, file_type:fileType });
+  fetchComments();
+}
+function closeComments() {
+  document.getElementById("comment-drawer").classList.remove("open");
+  if (currentFileId) socket.emit("leave-file", { file_id:currentFileId, file_type:currentFileType });
+  currentFileId = null; currentFileType = null; clearReply();
+}
+function setReply(commentId, name) {
+  replyToId = commentId;
+  document.getElementById("cd-reply-to-id").value = commentId;
+  document.getElementById("cd-reply-name").textContent = name;
+  document.getElementById("cd-reply-tag").classList.add("show");
+  document.getElementById("comment-input").placeholder = "Reply to " + name + "…";
+  document.getElementById("comment-input").focus();
+}
+function clearReply() {
+  replyToId = null;
+  document.getElementById("cd-reply-to-id").value = "";
+  document.getElementById("cd-reply-tag").classList.remove("show");
+  document.getElementById("comment-input").placeholder = "Add a comment…";
+}
+
+async function fetchComments() {
+  const fid  = document.getElementById("cd-file-id").value;
+  const ftyp = document.getElementById("cd-file-type").value;
+  if (!fid) return;
+  const list = document.getElementById("comment-list");
+  list.innerHTML = `<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px;">Loading…</div>`;
+  try {
+    const r = await apiFetch(`/comments/${ftyp}/${fid}`);
+    const d = await r.json();
+    list.innerHTML = "";
+    if (!d.length) { list.innerHTML = `<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:30px 0;">No comments yet. Be first!</div>`; return; }
+    d.filter(c => !c.parent_id).forEach(c => appendComment(c, false));
+    d.filter(c =>  c.parent_id).forEach(c => appendReply(c, false));
+    list.scrollTop = list.scrollHeight;
+  } catch(e) {}
+}
+
+function makeAvChar(name) { return (name||"?")[0].toUpperCase(); }
+
+function appendComment(c, scroll) {
+  const list = document.getElementById("comment-list");
+  if (document.getElementById(`ci-${c.id}`)) return;
+  const t = new Date(c.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  const div = document.createElement("div");
+  div.className = "comment-item"; div.id = `ci-${c.id}`; div.dataset.commentId = c.id;
+  div.innerHTML = `<div class="ci-row"><div class="ci-av">${makeAvChar(c.user_name)}</div><div class="ci-body"><div class="ci-header"><span class="ci-name">${escHtml(c.user_name)}</span><span class="ci-time">${t}</span></div><div class="ci-text">${escHtml(c.comment)}</div><div class="ci-foot"><button class="reply-btn">↩ Reply</button></div></div></div><div class="ci-replies" id="replies-${c.id}"></div>`;
+  div.querySelector(".reply-btn").addEventListener("click", () => setReply(c.id, c.user_name));
+  list.appendChild(div);
+  if (scroll) list.scrollTop = list.scrollHeight;
+}
+
+function appendReply(c, scroll) {
+  if (document.getElementById(`ci-${c.id}`)) return;
+  const parentId  = parseInt(c.parent_id, 10);
+  const container = document.getElementById(`replies-${parentId}`);
+  if (!container) { appendComment({ ...c, parent_id:null }, scroll); return; }
+  const t = new Date(c.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  const div = document.createElement("div");
+  div.className = "comment-item reply-item"; div.id = `ci-${c.id}`;
+  div.innerHTML = `<div class="ci-row"><div class="ci-av sm">${makeAvChar(c.user_name)}</div><div class="ci-body"><div class="ci-header"><span class="ci-name">${escHtml(c.user_name)}</span><span class="ci-time">${t}</span></div><div class="ci-text">${escHtml(c.comment)}</div><div class="ci-foot"><button class="reply-btn">↩ Reply</button></div></div></div>`;
+  div.querySelector(".reply-btn").addEventListener("click", () => setReply(parentId, c.user_name));
+  container.appendChild(div);
+  if (scroll) document.getElementById("comment-list").scrollTop = 999999;
+}
+
+async function postComment() {
+  const fid      = document.getElementById("cd-file-id").value;
+  const ftyp     = document.getElementById("cd-file-type").value;
+  const parentId = document.getElementById("cd-reply-to-id").value || null;
+  const input    = document.getElementById("comment-input");
+  const text     = input.value.trim();
+  if (!text || !fid) return;
+  const tempId = "temp-" + Date.now();
+  const tempC  = { id:tempId, user_name:USER.name||"You", comment:text,
+    created_at:new Date().toISOString(), parent_id:parentId?parseInt(parentId):null,
+    file_id:fid, file_type:ftyp };
+  input.value = ""; clearReply();
+  if (tempC.parent_id) appendReply(tempC, true); else appendComment(tempC, true);
+  try {
+    const r = await apiFetch("/post-comment", { method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ file_id:fid, file_type:ftyp, comment:text, parent_id:parentId, socket_id:socket.id }) });
+    const d = await r.json();
+    if (d.real_id) {
+      const el = document.getElementById(`ci-${tempId}`);
+      if (el) {
+        el.id = `ci-${d.real_id}`; el.dataset.commentId = d.real_id;
+        const rc = el.querySelector(".ci-replies"); if (rc) rc.id = `replies-${d.real_id}`;
+        if (!tempC.parent_id) el.querySelector(".reply-btn")?.addEventListener("click", () => setReply(d.real_id, USER.name||"You"));
+      }
+    }
+  } catch(e) { toast("Error posting comment","error"); }
+}
+
+/* ═══ PLANNER ═══════════════════════════════════════════════════════════════ */
+function openTaskModal() { document.getElementById("task-modal").style.display = "flex"; }
+function closeTaskModal() { document.getElementById("task-modal").style.display = "none"; }
+async function saveTask() {
+  const task    = document.getElementById("tm-task").value.trim();
+  const subject = document.getElementById("tm-subject").value.trim();
+  const dueDate = document.getElementById("tm-date").value;
+  if (!task) { toast("Enter a task name","error"); return; }
+  try {
+    const r = await apiFetch("/add-task", { method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ task, subject, due_date:dueDate }) });
+    const d = await r.json();
+    if (d.success) { closeTaskModal(); loadTasks(); toast("Task added 📅","success"); }
+  } catch(e) { toast("Error","error"); }
+}
+async function loadTasks() {
+  const list  = document.getElementById("task-list");
+  const empty = document.getElementById("task-empty");
+  list.innerHTML = "";
+  try {
+    const r = await apiFetch("/tasks");
+    const tasks = await r.json();
+    if (!tasks.length) { empty.style.display = "block"; return; }
+    empty.style.display = "none";
+    tasks.forEach(t => {
+      const item = document.createElement("div");
+      item.className = "task-item" + (t.status==="done"?" done":"");
+      const due = t.due_date ? new Date(t.due_date).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}) : "";
+      item.innerHTML = `
+        <div class="task-check ${t.status==="done"?"checked":""}" onclick="toggleTask(${t.id},this)">${t.status==="done"?"✓":""}</div>
+        <div class="task-info"><div class="task-name">${escHtml(t.task)}</div>${t.subject?`<div class="task-sub">${escHtml(t.subject)}</div>`:""}</div>
+        ${due?`<span class="task-due">${due}</span>`:""}
+        <button class="task-del" onclick="deleteTask(${t.id})">🗑️</button>`;
+      list.appendChild(item);
+    });
+  } catch(e) { empty.style.display = "block"; }
+}
+async function toggleTask(id, el) {
+  const done = !el.classList.contains("checked");
+  el.classList.toggle("checked",done); el.textContent = done?"✓":"";
+  el.closest(".task-item").classList.toggle("done",done);
+  await apiFetch("/update-task", { method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ id, status:done?"done":"pending" }) });
+}
+async function deleteTask(id) {
+  await apiFetch(`/delete-task/${id}`, { method:"DELETE" }); loadTasks();
+}
+
+/* ═══ LEADERBOARD ═══════════════════════════════════════════════════════════ */
+function switchLbTab(tab, el) {
+  document.querySelectorAll(".lb-tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active"); loadLeaderboard(tab);
+}
+async function loadLeaderboard(tab) {
+  const list = document.getElementById("lb-list");
+  list.innerHTML = `<div style="color:var(--muted);text-align:center;padding:20px;">Loading…</div>`;
+  try {
+    const r = await apiFetch(`/leaderboard?type=${tab}`);
+    if (!r.ok) { list.innerHTML = `<div style="color:var(--red);text-align:center;padding:20px;">Server error</div>`; return; }
+    const lb = await r.json();
+    list.innerHTML = "";
+    if (!lb.length) { list.innerHTML = `<div style="color:var(--muted);text-align:center;padding:30px;font-size:.85rem;">No data yet — start studying!</div>`; return; }
+    const meta = { streak:{label:"day streak",icon:"🔥",col:"var(--gold)"}, engagement:{label:"actions",icon:"⚡",col:"#a78bfa"}, uploads:{label:"uploads",icon:"📤",col:"var(--accent)"} }[tab] || {label:"",icon:"",col:"var(--accent)"};
+    lb.forEach((u,i) => {
+      const item = document.createElement("div"); item.className = "lb-item";
+      const rc = ["r1","r2","r3"][i] || "rn";
+      const av = u.photo ? `<img src="${escAttr(u.photo)}" alt="">` : escHtml((u.name||"?")[0].toUpperCase());
+      item.innerHTML = `<div class="lb-rank ${rc}">${i+1}</div><div class="lb-av">${av}</div><div class="lb-info"><div class="lb-name">${escHtml(u.name)}</div><div class="lb-stat">${meta.icon} ${u.count} ${meta.label}</div></div><div class="lb-score" style="color:${meta.col}">${u.count}</div>`;
+      list.appendChild(item);
+    });
+  } catch(e) { list.innerHTML = `<div style="color:var(--red);text-align:center;padding:20px;font-size:.82rem;">${e.message}</div>`; }
+}
+
+/* ═══ BOOKMARKS ═════════════════════════════════════════════════════════════ */
+async function loadBookmarks() {
+  const grid  = document.getElementById("bookmarks-grid");
+  const empty = document.getElementById("bk-empty");
+  grid.innerHTML = "";
+  try {
+    const r   = await apiFetch("/bookmarks");
+    const bks = await r.json();
+    if (!bks.length) { empty.style.display = "block"; return; }
+    empty.style.display = "none";
+    bks.forEach(f => grid.appendChild(makeFileCard(f, f.file_type)));
+  } catch(e) { empty.style.display = "block"; }
+}
+
+/* ═══ SEARCH ════════════════════════════════════════════════════════════════ */
+let searchTimer;
+document.getElementById("search-input").addEventListener("input", function() {
+  clearTimeout(searchTimer);
+  const q = this.value.trim();
+  const box = document.getElementById("search-results");
+  if (!q) { box.style.display = "none"; return; }
+  searchTimer = setTimeout(() => doSearch(q), 280);
+});
+document.addEventListener("click", e => {
+  if (!e.target.closest("#search-wrap")) document.getElementById("search-results").style.display = "none";
+});
+async function doSearch(q) {
+  const box = document.getElementById("search-results");
+  box.style.display = "block";
+  box.innerHTML = `<div style="padding:12px;color:var(--muted);font-size:.82rem;">Searching…</div>`;
+  try {
+    const r = await apiFetch(`/search?q=${encodeURIComponent(q)}`);
+    const d = await r.json(); box.innerHTML = "";
+    if (!d.length) { box.innerHTML = `<div style="padding:12px;color:var(--muted);font-size:.82rem;">No results found.</div>`; return; }
+    const icons = { note:"📄", ppt:"📊", paper:"📝" };
+    d.forEach(item => {
+      const div = document.createElement("div"); div.className = "sr-item";
+      div.innerHTML = `<span class="sri-icon">${icons[item.type]||"📄"}</span><span class="sri-name">${escHtml(item.filename)}</span><span class="sri-tag">${escHtml(item.subject)}</span>`;
+      div.onclick = () => {
+        document.getElementById("search-results").style.display = "none";
+        document.getElementById("search-input").value = "";
+        openPreview(item.filename, item.filepath, item.type);
+      };
+      box.appendChild(div);
+    });
+  } catch(e) { box.innerHTML = `<div style="padding:12px;color:var(--red);font-size:.82rem;">Search error.</div>`; }
+}
+
+/* ═══ FIELD MODAL ═══════════════════════════════════════════════════════════ */
+function showModal() { document.getElementById("modal").style.display = "flex"; }
+function openModal() { showModal(); }
+document.getElementById("field-sel").onchange = function() {
+  const b = document.getElementById("branch-sel");
+  b.innerHTML = ""; b.style.display = "block";
+  (BRANCHES[this.value]||[]).forEach(br => { const o = document.createElement("option"); o.value = br; o.textContent = br; b.appendChild(o); });
+};
+async function saveField() {
+  const f = document.getElementById("field-sel").value;
+  const b = document.getElementById("branch-sel").value;
+  if (!f||!b) { toast("Select both field and branch","error"); return; }
+  try {
+    const r = await apiFetch("/save-field", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({field:f,branch:b}) });
+    const d = await r.json();
+    if (d.success) {
+      document.getElementById("modal").style.display = "none";
+      const ur = await apiFetch("/user-info"); USER = await ur.json(); BRANCH = USER.branch;
+      renderSubjects(); loadStreak(); loadProfileNav();
+      const fn = (USER.name||"").split(" ")[0];
+      const el = document.getElementById("greeting-name");
+      if (el && fn) el.textContent = fn;
+    }
+  } catch(e) { toast("Error saving","error"); }
+}
+
+/* ═══ GAME ══════════════════════════════════════════════════════════════════ */
+function openGameIframe() {
+  document.getElementById("game-iframe-wrap").style.display = "flex";
+  document.body.style.overflow = "hidden";
+}
+function closeGameIframe() {
+  document.getElementById("game-iframe-wrap").style.display = "none";
+  document.body.style.overflow = "";
+}
+
+/* ═══ UTILS ═════════════════════════════════════════════════════════════════ */
+function logout() { location.href = "/logout"; }
+function escHtml(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function escAttr(s) { return String(s||"").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+
+let toastTimer;
+function toast(msg, type="success") {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.className = "show " + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = "", 2800);
+}
+</script>
+</body>
+</html>

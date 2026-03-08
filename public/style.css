@@ -1,0 +1,149 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+/* MAIN CARD */
+.container {
+  width: 360px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 32px 28px;
+  border-radius: 14px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+/* LOGO */
+.logo {
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.logo-x {
+  color: #4fc3f7; /* match splash color */
+  font-weight: 700;
+}
+
+/* FIELD ICONS — JUST BELOW LOGO */
+.fields {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin: 14px 0 22px;
+}
+
+.fields span {
+  font-size: 22px;
+  opacity: 0.9;
+  cursor: default;
+}
+
+/* FORM */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+input {
+  padding: 11px 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+
+input::placeholder {
+  color: #888;
+}
+
+/* BUTTON */
+button {
+  margin-top: 6px;
+  padding: 11px;
+  background: #4fc3f7;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #00303f;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(79, 195, 247, 0.4);
+}
+
+/* SWITCH TEXT */
+.switch,
+.register {
+  margin-top: 18px;
+  font-size: 14px;
+}
+
+/* REGISTER / LOGIN LINK — SAME COLOR AS BUTTON */
+.switch a,
+.register a {
+  color: #4fc3f7;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.switch a:hover,
+.register a:hover {
+  text-decoration: underline;
+}
+.notes-grid { 
+  display:grid; 
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); 
+  gap:20px; 
+  width:100%; 
+  max-width:1000px; 
+  margin:30px 0 80px 0;
+}
+
+.note-box { 
+  background:rgba(255,255,255,0.08); 
+  border-radius:12px; 
+  height:140px; 
+  display:flex; 
+  flex-direction:column; 
+  justify-content:center; 
+  align-items:center; 
+  cursor:pointer; 
+  transition:0.2s; 
+  position:relative;
+  overflow:hidden;
+}
+.note-box:hover { 
+  transform:translateY(-5px); 
+  box-shadow:0 10px 25px rgba(79,195,247,0.4); 
+}
+.note-emoji { font-size:2rem; margin-bottom:8px; }
+.note-title { 
+  font-size:0.85rem; 
+  text-align:center; 
+  padding:0 8px; 
+  word-break:break-word;
+}
+.note-date { 
+  position:absolute; 
+  bottom:8px; 
+  font-size:0.7rem; 
+  opacity:0.6;
+}
