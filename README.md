@@ -13,12 +13,12 @@ A study companion platform for students. Upload your notes, slides, and past pap
 ![Notes](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/notes.png)
 
 ### Study Planner
-![Planner](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/planner.png)
+![Planner](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/studyplanner.png)
 
 ### MCQ Bridge Run Game
-![Game Setup](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/game_setup.png)
-![Game Running](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/game_running.png)
-![Game Panels](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/game_panels.png)
+![Game Setup](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/game.png)
+![Game Running](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/game1.png)
+![Game Panels](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/game2.png)
 
 ### Leaderboard & Profile
 ![Leaderboard](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/leaderboard.png)
