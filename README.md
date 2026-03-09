@@ -17,7 +17,6 @@ A study companion platform for students. Upload your notes, slides, and past pap
 
 ### MCQ Bridge Run Game
 ![Game Setup](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/game.png)
-![Game Running](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/game1.png)
 ![Game Panels](https://github.com/Dishak1803/Notex/raw/main/public/screenshots/game2.png)
 
 ### Leaderboard & Profile
