@@ -1,14 +1,30 @@
 -- ═══════════════════════════════════════════════════════════
 --  NoteX — Full Database Schema
---  Run this file to set up or extend your existing database.
---  Safe to run on top of existing tables (uses IF NOT EXISTS).
+--  Run this file once to set up the entire database from scratch.
 -- ═══════════════════════════════════════════════════════════
 
--- ── USERS (existing — add photo column if not present) ─────────────────────────
-ALTER TABLE users ADD COLUMN IF NOT EXISTS photo VARCHAR(512) DEFAULT NULL;
+-- Create and select the database
+CREATE DATABASE login_system;
+USE login_system;
 
--- ── NOTES (existing — keep as is) ─────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS notes (
+-- ── USERS ─────────────────────────────────────────────────────────────────────
+-- Stores all registered users with OTP-based verification
+CREATE TABLE users (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL,
+  email       VARCHAR(100) NOT NULL UNIQUE,
+  password    VARCHAR(255) NOT NULL,
+  field       VARCHAR(100) DEFAULT NULL,
+  branch      VARCHAR(100) DEFAULT NULL,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  otp         VARCHAR(6) DEFAULT NULL,
+  is_verified TINYINT(1) DEFAULT 0,
+  photo       VARCHAR(512) DEFAULT NULL
+);
+
+-- ── NOTES ─────────────────────────────────────────────────────────────────────
+-- Stores uploaded note files organized by subject
+CREATE TABLE notes (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   user_id     INT NOT NULL,
   subject     VARCHAR(255) NOT NULL,
@@ -19,8 +35,9 @@ CREATE TABLE IF NOT EXISTS notes (
   INDEX idx_user    (user_id)
 );
 
--- ── PPTS (existing — keep as is) ──────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS ppts (
+-- ── PPTS ──────────────────────────────────────────────────────────────────────
+-- Stores uploaded PowerPoint/presentation files organized by subject
+CREATE TABLE ppts (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   user_id     INT NOT NULL,
   subject     VARCHAR(255) NOT NULL,
@@ -31,8 +48,9 @@ CREATE TABLE IF NOT EXISTS ppts (
   INDEX idx_user    (user_id)
 );
 
--- ── PREVIOUS YEAR PAPERS (NEW) ─────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS papers (
+-- ── PREVIOUS YEAR PAPERS ──────────────────────────────────────────────────────
+-- Stores uploaded previous year exam papers organized by subject
+CREATE TABLE papers (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   user_id     INT NOT NULL,
   subject     VARCHAR(255) NOT NULL,
@@ -43,8 +61,9 @@ CREATE TABLE IF NOT EXISTS papers (
   INDEX idx_user    (user_id)
 );
 
--- ── LIKES (NEW) ────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS likes (
+-- ── LIKES ─────────────────────────────────────────────────────────────────────
+-- Tracks upvotes/downvotes on notes, ppts, and papers (one per user per file)
+CREATE TABLE likes (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   user_id     INT NOT NULL,
   file_id     INT NOT NULL,
@@ -54,8 +73,9 @@ CREATE TABLE IF NOT EXISTS likes (
   INDEX idx_file (file_id, file_type)
 );
 
--- ── BOOKMARKS (NEW) ───────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS bookmarks (
+-- ── BOOKMARKS ─────────────────────────────────────────────────────────────────
+-- Lets users save files to their personal saved list
+CREATE TABLE bookmarks (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   user_id     INT NOT NULL,
   file_id     INT NOT NULL,
@@ -65,8 +85,9 @@ CREATE TABLE IF NOT EXISTS bookmarks (
   INDEX idx_user (user_id)
 );
 
--- ── DOWNLOADS (NEW) ───────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS downloads (
+-- ── DOWNLOADS ─────────────────────────────────────────────────────────────────
+-- Logs every file download per user for stats and leaderboard tracking
+CREATE TABLE downloads (
   id             INT AUTO_INCREMENT PRIMARY KEY,
   user_id        INT NOT NULL,
   file_id        INT NOT NULL,
@@ -76,8 +97,9 @@ CREATE TABLE IF NOT EXISTS downloads (
   INDEX idx_user (user_id)
 );
 
--- ── COMMENTS (NEW) ────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS comments (
+-- ── COMMENTS ──────────────────────────────────────────────────────────────────
+-- Stores user comments on notes, ppts, and papers
+CREATE TABLE comments (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   user_id     INT NOT NULL,
   file_id     INT NOT NULL,
@@ -87,8 +109,9 @@ CREATE TABLE IF NOT EXISTS comments (
   INDEX idx_file (file_id, file_type)
 );
 
--- ── STUDY PLANNER (NEW) ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS study_tasks (
+-- ── STUDY PLANNER ─────────────────────────────────────────────────────────────
+-- Stores personal study tasks created by each user with due dates
+CREATE TABLE study_tasks (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   user_id     INT NOT NULL,
   task        VARCHAR(512) NOT NULL,
@@ -99,15 +122,17 @@ CREATE TABLE IF NOT EXISTS study_tasks (
   INDEX idx_user (user_id)
 );
 
--- ── STREAK SYSTEM (NEW) ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS streaks (
+-- ── STREAKS ───────────────────────────────────────────────────────────────────
+-- Tracks daily login streaks per user for the leaderboard
+CREATE TABLE streaks (
   user_id            INT PRIMARY KEY,
   current_streak     INT DEFAULT 0,
   last_active_date   DATE DEFAULT NULL
 );
 
--- ── MCQ QUESTIONS (NEW — admin adds questions) ─────────────────────────────────
-CREATE TABLE IF NOT EXISTS mcq_questions (
+-- ── MCQ QUESTIONS ─────────────────────────────────────────────────────────────
+-- Stores AI-generated MCQ questions per subject for the bridge run game
+CREATE TABLE mcq_questions (
   id             INT AUTO_INCREMENT PRIMARY KEY,
   subject        VARCHAR(255) NOT NULL,
   question       TEXT NOT NULL,
@@ -120,8 +145,9 @@ CREATE TABLE IF NOT EXISTS mcq_questions (
   INDEX idx_subject (subject)
 );
 
--- ── MCQ SCORES (NEW) ──────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS mcq_scores (
+-- ── MCQ SCORES ────────────────────────────────────────────────────────────────
+-- Records each game session score per user per subject
+CREATE TABLE mcq_scores (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   user_id     INT NOT NULL,
   subject     VARCHAR(255) NOT NULL,
@@ -129,22 +155,3 @@ CREATE TABLE IF NOT EXISTS mcq_scores (
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_user (user_id)
 );
-
--- ═══════════════════════════════════════════════════════════
---  SAMPLE MCQ QUESTIONS (optional — to test the game)
--- ═══════════════════════════════════════════════════════════
-INSERT IGNORE INTO mcq_questions (subject, question, option_a, option_b, option_c, option_d, correct_option) VALUES
-('Data Structures', 'Which data structure uses LIFO ordering?',       'Queue','Stack','Linked List','Tree', 1),
-('Data Structures', 'What is the time complexity of binary search?',  'O(n)','O(n²)','O(log n)','O(1)',  2),
-('Data Structures', 'Which traversal visits root first?',             'Inorder','Postorder','Preorder','Level-order', 2),
-('Data Structures', 'Array index starts from?',                       '1','0','-1','Depends on language', 1),
-('Data Structures', 'Which structure uses FIFO?',                     'Stack','Array','Queue','Tree', 2),
-('Algorithms',      'Quicksort average time complexity?',             'O(n)','O(n log n)','O(n²)','O(log n)', 1),
-('Algorithms',      'Which algorithm finds shortest path?',           'DFS','BFS','Dijkstra','Prim', 2),
-('Algorithms',      'Merge sort space complexity?',                   'O(1)','O(n)','O(log n)','O(n²)', 1),
-('DBMS',            'SQL stands for?',                                'Simple Query Language','Structured Query Language','Sequential Query Language','Standard Query Language', 1),
-('DBMS',            'Which key uniquely identifies a record?',        'Foreign Key','Candidate Key','Primary Key','Super Key', 2),
-('Machine Learning','Supervised learning requires?',                  'Unlabeled data','Labeled data','No data','Clustered data', 1),
-('Machine Learning','Overfitting means the model?',                   'Underfits training data','Fits training too well, fails on new data','Has high bias','Is ideal', 1),
-('Networking',      'IP stands for?',                                 'Internet Protocol','Internal Protocol','Intranet Protocol','Interface Protocol', 0),
-('Networking',      'Which layer handles routing?',                   'Data Link','Transport','Network','Application', 2);
