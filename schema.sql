@@ -4,12 +4,12 @@
 -- ═══════════════════════════════════════════════════════════
 
 -- Create and select the database
-CREATE DATABASE login_system;
+CREATE DATABASE IF NOT EXISTS login_system;
 USE login_system;
 
 -- ── USERS ─────────────────────────────────────────────────────────────────────
 -- Stores all registered users with OTP-based verification
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   name        VARCHAR(100) NOT NULL,
   email       VARCHAR(100) NOT NULL UNIQUE,
