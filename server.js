@@ -734,7 +734,7 @@ app.post("/generate-mcq", requireLogin, aiUpload.single("file"), async (req, res
       userContent = prompt;
     }
     const model = imageBase64
-      ? "meta-llama/llama-4-maverick-17b-128e-instruct"
+      ? "meta-llama/llama-4-scout-17b-16e-instruct"
       : "llama-3.3-70b-versatile";
     console.log("Calling Groq model:", model, "| questions:", requestedCount);
     const response = await Promise.race([
